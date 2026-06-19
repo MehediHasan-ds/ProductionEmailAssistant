@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -27,6 +28,25 @@ class GeneratedEmail(BaseModel):
     reasoning: str = ""
     subject: str
     body: str
+
+
+class AttemptRecord(BaseModel):
+    attempt: int
+    subject: str
+    body: str
+    reasoning: str = ""
+    scores: dict[str, Any]
+
+
+class AgentResult(BaseModel):
+    subject: str
+    body: str
+    reasoning: str = ""
+    scores: dict[str, Any]
+    overall: float
+    attempts: int
+    passed: bool
+    trace: list[AttemptRecord]
 
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "scenarios.json"
