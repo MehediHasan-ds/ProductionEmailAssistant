@@ -28,11 +28,25 @@ Install dependencies and create the environment:
 uv sync
 ```
 
-Create a `.env` file in the project root with at least these values:
+### Environment file
 
-- `OPENROUTER_API_KEY` your OpenRouter key
-- `GEMINI_API_KEY` your Google AI Studio key
-- `EMBEDDER_MODEL_DIR` absolute path to the local Jina embeddings model folder
+Create a `.env` file in the project root. This file is gitignored and never enters the repository.
+
+```
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash-lite
+
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=gpt-oss-120b
+
+EMBEDDER_MODEL_DIR=D:\path\to\jina-embeddings-v5-text-nano-retrieval
+```
+
+How to get each key:
+
+- **OpenRouter**: Sign up at https://openrouter.ai, go to Keys, create a key. This powers the gpt-oss-120B model.
+- **Google AI Studio**: Go to https://aistudio.google.com/apikey, create an API key. This powers the gemini-2.5-flash-lite model.
+- **Embedder model path**: Set this to the folder containing the Jina model files (see RAG model setup below).
 
 Optional overrides and their defaults:
 
@@ -41,7 +55,42 @@ Optional overrides and their defaults:
 - `PASS_THRESHOLD` defaults to `80`
 - `LLM_TIMEOUT` defaults to `60` seconds
 - `LLM_RETRY_ATTEMPTS` defaults to `3`
-- `GENERATION_TIMEOUT` defaults to `20` seconds
+- `GENERATION_TIMEOUT` defaults to `90` seconds
+
+### RAG model setup (Jina embeddings)
+
+The semantic similarity metric uses the local quantized Jina embeddings v5 model. It runs entirely offline on CPU via ONNX Runtime, no GPU or API key needed.
+
+1. Install the HuggingFace CLI and log in:
+
+```
+pip install huggingface-hub
+hf auth login
+```
+
+2. Download the model:
+
+```
+hf download jinaai/jina-embeddings-v5-text-nano-retrieval --local-dir jina-embeddings-v5-text-nano-retrieval
+```
+
+3. Verify the `onnx/` subfolder contains the quantized ONNX files:
+
+```
+jina-embeddings-v5-text-nano-retrieval/
+  config.json
+  tokenizer.json
+  tokenizer_config.json
+  1_Pooling/
+    config.json
+  onnx/
+    model_quantized.onnx
+    model_quantized.onnx_data
+```
+
+4. Set `EMBEDDER_MODEL_DIR` in your `.env` to the absolute path of the downloaded folder.
+
+The embedder uses last-token pooling and L2 normalization, matching the model's sentence-transformers pipeline. It prepends the BOS token automatically since the generic tokenizer class does not. The model loads once at startup and is reused across requests.
 
 ## Run the API
 
@@ -229,3 +278,21 @@ Testing. Open the interface at the root URL, choose or type a tone, paste the in
 Measuring. Read the overall score out of one hundred against the pass threshold, which is 80 by default. The rule based bars show fact coverage, tone match, structure, length, readability, placeholder leak, hallucination flag, and redundancy. The judge bars show tone fidelity, fact integration, professionalism, clarity and coherence, intent alignment, and overall send readiness. For reference comparison, post the email and a reference to the evaluate endpoint to get ROUGE L, BLEU, and cosine similarity.
 
 Evaluating. Compare the two providers side by side on the same inputs. On the failure cases, confirm the agent asks for clarification instead of inventing facts. On the malicious cases, confirm no system prompt text or secrets appear. For the full picture, run the evaluation suite to compare a single shot baseline against the refinement loop across all scenarios and providers, and read the report under reports.
+
+## Screenshots
+
+**Empty compose section with test cases on the right:**
+
+![Empty compose](docs/images/page1.png)
+
+**Test case selected and loaded into the form:**
+
+![Example selected](docs/images/page1_eg1.png)
+
+**Generated email with evaluation scores from both providers:**
+
+![Response and metrics](docs/images/page1_s2_eg1_metrics.png)
+
+**Custom metric definitions at the bottom of the page:**
+
+![Bottom metrics](docs/images/page1_eg1_bottom_metrics.png)

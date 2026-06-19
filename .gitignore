@@ -12,8 +12,6 @@ wheels/
 # Secrets
 .env
 
-# Outputs
-reports/
 
 # OS and editor
 .DS_Store

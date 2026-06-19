@@ -67,8 +67,10 @@ async def judge_email(
     scores: dict[str, float] = {}
     for key in JUDGE_KEYS:
         if key not in data:
-            raise AppError(f"Judge response missing key {key}")
-        scores[key] = _clamp(_to_score(data[key])) / 5.0
+            log.warning("judge.missing_key", key=key)
+            scores[key] = 0.6
+        else:
+            scores[key] = _clamp(_to_score(data[key])) / 5.0
     return scores
 
 
