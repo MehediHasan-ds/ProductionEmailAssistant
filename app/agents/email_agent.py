@@ -43,13 +43,16 @@ class EmailAgent:
         for attempt in range(1, max_attempts + 1):
             messages = build_messages(scenario.intent, scenario.key_facts, scenario.tone, feedback)
             raw = await self._client.chat(
-                messages, provider=provider, temperature=0.0, json_mode=True, timeout=60.0
+                # tried json_mode=True first, openrouter returns empty body
+                messages, provider=provider, temperature=0.0, json_mode=False
             )
             email = parse_email_response(raw)
             scores = await evaluate_email(
                 email.subject,
                 email.body,
-                scenario,
+                scenario.intent,
+                scenario.key_facts,
+                scenario.tone,
                 self._client,
                 provider,
                 with_judge=True,

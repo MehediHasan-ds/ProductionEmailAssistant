@@ -20,9 +20,14 @@ class Settings(BaseSettings):
 
     max_attempts: int = 3
     pass_threshold: float = 80.0  # TODO: tune after eval
-    eval_temperature: float = 0.0
 
-    embedder_model_dir: str = r"D:\AI Engineer\rag_models\jina-embeddings-v5-text-nano-retrieval"
+    llm_timeout: float = 60.0
+    llm_retry_attempts: int = 3
+    llm_retry_max_wait: int = 10
+    generation_timeout: float = 20.0
+
+    # No machine-specific default; this must be provided via the environment.
+    embedder_model_dir: str
     embedder_onnx_file: str = "model_quantized.onnx"
     embedder_max_length: int = 512
     embedder_prefix: str = "Document: "

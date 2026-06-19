@@ -1,6 +1,7 @@
 """Unit tests for the EmailAgent refinement loop, using a fake LLM client."""
 import asyncio
 import json
+import os
 
 import pytest
 
@@ -36,8 +37,9 @@ class FakeClient:
 def _settings(max_attempts, threshold):
     return Settings(
         _env_file=None,
-        openrouter_api_key="dummy",
-        gemini_api_key="dummy",
+        openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
+        gemini_api_key=os.getenv("GEMINI_API_KEY"),
+        embedder_model_dir=os.getenv("EMBEDDER_MODEL_DIR"),
         max_attempts=max_attempts,
         pass_threshold=threshold,
     )

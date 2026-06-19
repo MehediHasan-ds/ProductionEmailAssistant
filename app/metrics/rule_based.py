@@ -8,7 +8,10 @@ from __future__ import annotations
 import re
 import string
 
+import structlog
 import textstat
+
+log = structlog.get_logger(__name__)
 
 STOPWORDS = {
     "the", "a", "an", "and", "or", "but", "to", "of", "in", "on", "for", "with",
@@ -146,7 +149,9 @@ def _length(body: str) -> float:
 def _readability(body: str) -> float:
     try:
         fre = textstat.flesch_reading_ease(body)
-    except Exception:
+    except Exception as exc:
+        # textstat raises a range of runtime errors on degenerate input.
+        log.warning("rule.readability_failed", error=str(exc))
         return 0.5
     if 40 <= fre <= 70:
         return 1.0

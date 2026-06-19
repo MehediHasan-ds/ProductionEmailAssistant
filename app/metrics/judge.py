@@ -56,7 +56,7 @@ async def judge_email(
         {"role": "system", "content": JUDGE_SYSTEM},
         {"role": "user", "content": user},
     ]
-    raw = await client.chat(messages, provider=provider, temperature=0.0, json_mode=True, timeout=60.0)
+    raw = await client.chat(messages, provider=provider, temperature=0.0, json_mode=False)
 
     try:
         data: dict[str, Any] = json.loads(extract_json(raw))

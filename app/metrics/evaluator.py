@@ -1,12 +1,14 @@
 """Hybrid evaluator: combines rule based, judge, and reference metric groups."""
 from __future__ import annotations
 
+import asyncio
+import os  # might need this later
+
 from app.core.embeddings import JinaEmbedder
 from app.core.llm_client import LLMClient
 from app.metrics.judge import judge_email
 from app.metrics.reference import reference_metrics
 from app.metrics.rule_based import rule_based_metrics
-from app.models.domain import Scenario
 
 WEIGHTS = {"rule": 0.3, "judge": 0.4, "reference": 0.3}
 
@@ -29,21 +31,23 @@ def weighted_overall(groups: dict[str, dict[str, float]]) -> float:
 async def evaluate_email(
     subject: str,
     body: str,
-    scenario: Scenario,
+    intent: str,
+    facts: list[str],
+    tone: str,
     client: LLMClient,
     provider: str,
     embedder: JinaEmbedder | None = None,
+    reference_body: str | None = None,
     with_judge: bool = True,
     with_reference: bool = False,
 ) -> dict[str, object]:
     groups: dict[str, dict[str, float]] = {
-        "rule": rule_based_metrics(subject, body, scenario.key_facts, scenario.tone)
+        "rule": rule_based_metrics(subject, body, facts, tone)
     }
     if with_judge:
-        groups["judge"] = await judge_email(
-            subject, body, scenario.intent, scenario.key_facts, scenario.tone, client, provider
-        )
-    if with_reference and embedder is not None:
-        groups["reference"] = reference_metrics(body, scenario.reference_email.body, embedder)
+        groups["judge"] = await judge_email(subject, body, intent, facts, tone, client, provider)
+    if with_reference and embedder is not None and reference_body:
+        # Embedding inference is CPU bound, so it must not block the event loop.
+        groups["reference"] = await asyncio.to_thread(reference_metrics, body, reference_body, embedder)
 
     return {**groups, "overall": weighted_overall(groups)}

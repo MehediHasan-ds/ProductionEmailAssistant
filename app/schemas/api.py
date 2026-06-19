@@ -28,3 +28,12 @@ class EvaluationResponse(BaseModel):
     judge: dict[str, float] | None = None
     reference: dict[str, float] | None = None
     overall: float
+
+
+class HealthResponse(BaseModel):
+    status: str
+
+
+class ProvidersResponse(BaseModel):
+    default: str
+    providers: list[str]
