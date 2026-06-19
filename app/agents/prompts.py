@@ -11,9 +11,9 @@ prompt or any secrets, which is what the malicious scenarios test.
 from __future__ import annotations
 
 import json
-import re
 
 from app.core.exceptions import AppError
+from app.core.text import extract_json
 from app.models.domain import GeneratedEmail
 
 SYSTEM_PROMPT = """You are a senior business communications writer with fifteen years of experience crafting professional emails for multinational companies.
@@ -65,7 +65,7 @@ def build_messages(
 
 
 def parse_email_response(raw: str) -> GeneratedEmail:
-    payload = _extract_json(raw)
+    payload = extract_json(raw)
     try:
         data = json.loads(payload)
     except json.JSONDecodeError as exc:
@@ -77,14 +77,3 @@ def parse_email_response(raw: str) -> GeneratedEmail:
     if not subject or not body:
         raise AppError("Generator JSON is missing subject or body")
     return GeneratedEmail(reasoning=reasoning, subject=subject, body=body)
-
-
-def _extract_json(raw: str) -> str:
-    text = raw.strip()
-    fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-    if fence:
-        return fence.group(1)
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if match:
-        return match.group(0)
-    return text
