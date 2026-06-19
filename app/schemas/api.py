@@ -37,3 +37,15 @@ class HealthResponse(BaseModel):
 class ProvidersResponse(BaseModel):
     default: str
     providers: list[str]
+
+
+class RunEvalsRequest(BaseModel):
+    providers: list[str] | None = None
+    scenario_ids: list[str] | None = None
+
+
+class RunEvalsResponse(BaseModel):
+    aggregates: dict[str, dict[str, float]]
+    scenario_count: int
+    report_md: str
+    report_csv: str

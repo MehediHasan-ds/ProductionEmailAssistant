@@ -14,7 +14,7 @@ from app.agents.prompts import build_messages, parse_email_response
 from app.config import Settings
 from app.core.llm_client import LLMClient
 from app.metrics.evaluator import evaluate_email
-from app.models.domain import AgentResult, AttemptRecord, Scenario
+from app.models.domain import AgentResult, AttemptRecord, GeneratedEmail, Scenario
 
 log = structlog.get_logger(__name__)
 
@@ -23,6 +23,19 @@ class EmailAgent:
     def __init__(self, client: LLMClient, settings: Settings) -> None:
         self._client = client
         self._settings = settings
+
+    async def generate_once(
+        self,
+        scenario: Scenario,
+        provider: str | None = None,
+    ) -> GeneratedEmail:
+        provider = provider or self._settings.default_provider
+        messages = build_messages(scenario.intent, scenario.key_facts, scenario.tone)
+        raw = await self._client.chat(
+                # tried json_mode=True first, openrouter returns empty body
+            messages, provider=provider, temperature=0.0, json_mode=False
+        )
+        return parse_email_response(raw)
 
     async def run(
         self,

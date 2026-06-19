@@ -3,13 +3,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from app.config import Settings
+from app.config import PROVIDERS, Settings
 from app.dependencies import get_settings
 from app.schemas.api import HealthResponse, ProvidersResponse
 
 router = APIRouter()
-
-PROVIDERS = ["openrouter", "gemini"]
 
 
 @router.get("/health", response_model=HealthResponse)
