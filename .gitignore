@@ -20,7 +20,6 @@ reports/
 .idea/
 .vscode/
 *.log
-uv.lock
-scripts/
+.python-version
 .pytest_cache
 .python-version

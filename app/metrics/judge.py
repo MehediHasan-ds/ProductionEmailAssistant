@@ -6,6 +6,7 @@ combined with the rule based and reference metrics.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from app.core.exceptions import AppError
@@ -67,8 +68,16 @@ async def judge_email(
     for key in JUDGE_KEYS:
         if key not in data:
             raise AppError(f"Judge response missing key {key}")
-        scores[key] = _clamp(float(data[key])) / 5.0
+        scores[key] = _clamp(_to_score(data[key])) / 5.0
     return scores
+
+
+def _to_score(value: Any) -> float:
+    # Models sometimes wrap scores as "4/5" or "Score: 4"; take the first number.
+    match = re.search(r"\d+(?:\.\d+)?", str(value))
+    if not match:
+        raise AppError(f"Judge score not numeric: {value!r}")
+    return float(match.group(0))
 
 
 def _clamp(value: float) -> float:

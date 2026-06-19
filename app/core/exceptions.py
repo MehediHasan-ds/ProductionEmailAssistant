@@ -21,6 +21,7 @@ class AppError(Exception):
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _on_app_error(_: Request, exc: AppError) -> JSONResponse:
+        log.warning("app.error", status=exc.status_code, message=exc.message)
         return JSONResponse(status_code=exc.status_code, content={"error": exc.message})
 
     @app.exception_handler(Exception)

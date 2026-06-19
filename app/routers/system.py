@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from app.config import PROVIDERS, Settings
+from app.config import Settings
 from app.dependencies import get_settings
-from app.schemas.api import HealthResponse, ProvidersResponse
+from app.schemas.api import HealthResponse, ProviderInfo, ProvidersResponse
 
 router = APIRouter()
 
@@ -17,4 +17,8 @@ def health() -> HealthResponse:
 
 @router.get("/providers", response_model=ProvidersResponse)
 def providers(settings: Settings = Depends(get_settings)) -> ProvidersResponse:
-    return ProvidersResponse(default=settings.default_provider, providers=PROVIDERS)
+    info = [
+        ProviderInfo(name="openrouter", model=settings.openrouter_model),
+        ProviderInfo(name="gemini", model=settings.gemini_model),
+    ]
+    return ProvidersResponse(default=settings.default_provider, providers=info)

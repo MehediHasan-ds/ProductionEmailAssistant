@@ -11,6 +11,7 @@ class GenerateRequest(BaseModel):
     provider: str | None = None
     max_attempts: int | None = None
     threshold: float | None = None
+    reference: str | None = None
 
 
 class EvaluateRequest(BaseModel):
@@ -34,9 +35,14 @@ class HealthResponse(BaseModel):
     status: str
 
 
+class ProviderInfo(BaseModel):
+    name: str
+    model: str
+
+
 class ProvidersResponse(BaseModel):
     default: str
-    providers: list[str]
+    providers: list[ProviderInfo]
 
 
 class RunEvalsRequest(BaseModel):

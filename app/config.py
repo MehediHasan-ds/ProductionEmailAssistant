@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     llm_timeout: float = 60.0
     llm_retry_attempts: int = 3
     llm_retry_max_wait: int = 10
-    generation_timeout: float = 20.0
+    generation_timeout: float = 90.0
 
     # No machine-specific default; this must be provided via the environment.
     embedder_model_dir: str
