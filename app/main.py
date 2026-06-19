@@ -13,7 +13,7 @@ from app.core.embeddings import JinaEmbedder
 from app.core.exceptions import register_exception_handlers
 from app.core.llm_client import LLMClient
 from app.core.logging import configure_logging
-from app.routers import evaluate, generate, system
+from app.routers import evaluate, generate, system, ui
 
 
 @asynccontextmanager
@@ -47,6 +47,7 @@ def create_app() -> FastAPI:
     app.include_router(system.router, tags=["system"])
     app.include_router(generate.router, tags=["generate"])
     app.include_router(evaluate.router, tags=["evaluate"])
+    app.include_router(ui.router)
     return app
 
 

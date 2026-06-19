@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Production Email Assistant</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: #f6f7f9; color: #1b1f24; line-height: 1.5;
+    }
+    header {
+      background: #11181f; color: #fff; padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+    .pill { font-size: 12px; background: #2a333d; padding: 4px 10px; border-radius: 999px; }
+    main { max-width: 1000px; margin: 24px auto; padding: 0 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 820px) { main { grid-template-columns: 1fr; } }
+    .card { background: #fff; border: 1px solid #e3e6ea; border-radius: 10px; padding: 16px; }
+    .card h2 { font-size: 14px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .04em; color: #57606a; }
+    label { display: block; font-size: 12px; color: #57606a; margin: 10px 0 4px; }
+    input, textarea, select { width: 100%; padding: 8px 10px; border: 1px solid #d0d7de; border-radius: 6px; font: inherit; background: #fff; }
+    textarea { resize: vertical; min-height: 70px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      margin-top: 14px; width: 100%; padding: 10px; border: 0; border-radius: 6px;
+      background: #2563eb; color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+    }
+    button:disabled { background: #9aa4ad; cursor: default; }
+    .overall { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .overall .num { font-size: 30px; font-weight: 700; }
+    .overall .of { color: #57606a; }
+    .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; }
+    .badge.pass { background: #dcfce7; color: #166534; }
+    .badge.fail { background: #fee2e2; color: #991b1b; }
+    .metric { display: grid; grid-template-columns: 150px 1fr 40px; align-items: center; gap: 8px; margin: 5px 0; font-size: 12px; }
+    .bar { background: #eef0f3; border-radius: 999px; height: 8px; overflow: hidden; }
+    .fill { height: 100%; background: #2563eb; }
+    .group-title { font-size: 12px; color: #57606a; margin: 10px 0 2px; text-transform: uppercase; letter-spacing: .04em; }
+    pre { white-space: pre-wrap; word-wrap: break-word; background: #0d1117; color: #e6edf3; padding: 12px; border-radius: 8px; font-size: 13px; }
+    details { border-top: 1px solid #e3e6ea; margin-top: 10px; padding-top: 8px; }
+    summary { cursor: pointer; font-size: 12px; color: #57606a; }
+    .attempt { margin: 8px 0; font-size: 12px; }
+    .error { color: #991b1b; font-size: 13px; }
+    .muted { color: #57606a; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Production Email Assistant</h1>
+    <span id="status" class="pill">checking...</span>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Compose</h2>
+      <label for="intent">Intent</label>
+      <textarea id="intent" placeholder="e.g. Follow up after a product demo with a prospective client"></textarea>
+
+      <label for="facts">Key facts (one per line)</label>
+      <textarea id="facts" placeholder="Demo with the Acme team on Monday&#10;Shared the pricing sheet&#10;Next step is a pilot in July"></textarea>
+
+      <label for="tone">Tone</label>
+      <input id="tone" value="professional" />
+
+      <div class="row">
+        <div>
+          <label for="provider">Provider</label>
+          <select id="provider"></select>
+        </div>
+        <div>
+          <label for="max_attempts">Max attempts (optional)</label>
+          <input id="max_attempts" type="number" min="1" max="5" placeholder="default" />
+        </div>
+      </div>
+
+      <button id="go" onclick="generate()">Generate</button>
+      <p id="err" class="error"></p>
+    </section>
+
+    <section class="card">
+      <h2>Result</h2>
+      <div id="empty" class="muted">Nothing yet. Compose and generate.</div>
+      <div id="result" hidden>
+        <div class="overall">
+          <span id="overall_num" class="num">0</span><span class="of">/ 100</span>
+          <span id="pass_badge" class="badge"></span>
+        </div>
+        <div class="muted"><span id="attempts"></span></div>
+
+        <div class="group-title">Subject</div>
+        <div id="subject"></div>
+
+        <div class="group-title">Body</div>
+        <pre id="body"></pre>
+
+        <div id="scores"></div>
+
+        <details>
+          <summary>Refinement trace</summary>
+          <div id="trace"></div>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function init() {
+      console.log("page loaded");
+      try {
+        const health = await fetch("/health");
+        $("status").textContent = health.ok ? "online" : "offline";
+        const p = await fetch("/providers").then((r) => r.json());
+        $("provider").innerHTML = p.providers
+          .map((x) => `<option value="${x}" ${x === p.default ? "selected" : ""}>${x}</option>`)
+          .join("");
+      } catch (e) {
+        $("status").textContent = "offline";
+      }
+    }
+
+    function bar(label, value) {
+      const pct = Math.max(0, Math.min(100, value * 100));
+      return `<div class="metric"><span>${label}</span><div class="bar"><div class="fill" style="width:${pct}%"></div></div><span>${Math.round(pct)}</span></div>`;
+    }
+
+    function group(title, scores) {
+      if (!scores) return "";
+      const rows = Object.entries(scores).map(([k, v]) => bar(k.replace(/_/g, " "), v)).join("");
+      return `<div class="group-title">${title}</div>${rows}`;
+    }
+
+    function render(data) {
+      $("empty").hidden = true;
+      $("result").hidden = false;
+      $("overall_num").textContent = Number(data.overall).toFixed(1);
+      const badge = $("pass_badge");
+      badge.textContent = data.passed ? "passed" : "below target";
+      badge.className = "badge " + (data.passed ? "pass" : "fail");
+      $("attempts").textContent = `${data.attempts} attempt(s)`;
+      $("subject").textContent = data.subject;
+      $("body").textContent = data.body;
+      $("scores").innerHTML =
+        group("Rule based", data.scores.rule) + group("LLM judge", data.scores.judge);
+      $("trace").innerHTML = data.trace
+        .map(
+          (t) =>
+            `<div class="attempt"><strong>Attempt ${t.attempt}</strong> — overall ${Number(t.scores.overall).toFixed(1)}<br><pre>${t.body}</pre></div>`
+        )
+        .join("");
+    }
+
+    async function generate() {
+      $("err").textContent = "";
+      const go = $("go");
+      go.disabled = true;
+      go.textContent = "Generating...";
+      try {
+        const payload = {
+          intent: $("intent").value.trim(),
+          facts: $("facts").value.split("\n").map((s) => s.trim()).filter(Boolean),
+          tone: $("tone").value.trim() || "professional",
+          provider: $("provider").value,
+        };
+        if ($("max_attempts").value) payload.max_attempts = Number($("max_attempts").value);
+        const res = await fetch("/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const msg = await res.json().catch(() => ({}));
+          throw new Error(msg.error || `Request failed (${res.status})`);
+        }
+        render(await res.json());
+      } catch (e) {
+        $("err").textContent = e.message;
+      } finally {
+        go.disabled = false;
+        go.textContent = "Generate";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
