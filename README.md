@@ -2,6 +2,12 @@
 
 An agentic assistant that generates professional emails from an intent, a set of key facts, and a tone. It uses a self refinement loop: it drafts an email, scores it against a hybrid set of metrics, and if the score is below target it feeds its own critique back into the prompt and tries again, up to a capped number of attempts. It always returns the best draft.
 
+## Skills Demonstrated
+
+**Analytical skills:** Problem decomposition and root cause analysis (Five Whys), requirements engineering with functional and non-functional targets, systems analysis with dependency and failure mode mapping, evaluation design across five scenario categories, comparative model analysis with data-driven recommendations, feasibility assessment for agent versus rules versus automation.
+
+**Technical skills:** Advanced prompt engineering (role-playing, few-shot, chain-of-thought, self-refinement), Python and FastAPI development with async patterns, dependency injection, lifespan management, and middleware, RAG pipeline with local Jina embeddings v5 (ONNX quantized, last-token pooling, BOS handling, L2 normalization) for semantic similarity, HuggingFace transformers for tokenization, ONNX Runtime for CPU inference without GPU, pydantic and pydantic-settings for schema validation and environment-driven configuration, numpy for vector math and cosine similarity computation, LLM API integration across OpenRouter (OpenAI compatible) and Google AI Studio (native generateContent), tenacity for retry logic with exponential backoff, structured logging with structlog, custom evaluation metric design (rule-based heuristics, LLM-as-judge rubrics, reference comparison with ROUGE-L, BLEU, and Jina cosine), frontend development with vanilla HTML, CSS, and JavaScript (single-page interface, real-time score bars, auto-growing textareas, provider-parallel generation), security engineering against prompt injection and data exfiltration with untrusted input handling.
+
 ## What it does
 
 - Takes intent, key facts, and tone as inputs.
