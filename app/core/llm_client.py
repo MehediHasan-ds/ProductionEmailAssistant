@@ -105,7 +105,8 @@ class LLMClient:
         body: dict[str, Any] = {"contents": self._to_contents(turns)}
         generation_config: dict[str, Any] = {"temperature": temperature}
         if system_text:
-            body["system_instruction"] = system_text
+            # The native API requires a Content object, not a raw string.
+            body["system_instruction"] = {"parts": [{"text": system_text}]}
         if json_mode:
             generation_config["response_mime_type"] = "application/json"
         body["generationConfig"] = generation_config
