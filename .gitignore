@@ -22,3 +22,4 @@ reports/
 *.log
 uv.lock
 scripts/
+.pytest_cache
