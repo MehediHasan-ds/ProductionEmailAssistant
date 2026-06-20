@@ -12,6 +12,15 @@ wheels = [
 ]
 
 [[package]]
+name = "aiosmtplib"
+version = "3.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/50/d1/884d29b626f8605670426639529d4ba66d88393afa6503d9771d8d097803/aiosmtplib-3.0.0.tar.gz", hash = "sha256:857767879678edb5d188e9d38c16dbfe7b3045b535f45b26b349c6471fe8c234", size = 57156, upload-time = "2023-10-25T03:13:23.278Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/41/fa90034c508cc31f7cbf3d99fdecf2e345c36eff12cef42de849b1373aed/aiosmtplib-3.0.0-py3-none-any.whl", hash = "sha256:3b718f8a457fa3a986c4975f0cccb864a73070bc4809f83199b55e6251eeb254", size = 26999, upload-time = "2023-10-25T03:13:21.64Z" },
+]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -40,6 +49,27 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1c/b5/001890774a9552aff22502b8da382593109ce0c95314abaebbb116567545/anyio-4.14.0.tar.gz", hash = "sha256:b47c1f9ccf73e67021df785332508f99379c68fa7d0684e8e3492cb1d4b23f89", size = 253586, upload-time = "2026-06-15T22:00:49.021Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/16/9826f089383c593cdfc4a6e5aca94d9e91ae1692c57af82c3b2aa5e810f7/anyio-4.14.0-py3-none-any.whl", hash = "sha256:dd9b7a2a9799ed6552fde617b2c5df02b7fdd7d88392fc48101e51bae46164d9", size = 123506, upload-time = "2026-06-15T22:00:47.595Z" },
+]
+
+[[package]]
+name = "async-generator"
+version = "1.10"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/b6/6fa6b3b598a03cba5e80f829e0dadbb49d7645f523d209b2fb7ea0bbb02a/async_generator-1.10.tar.gz", hash = "sha256:6ebb3d106c12920aaae42ccb6f787ef5eefdcdd166ea3d628fa8476abe712144", size = 29870, upload-time = "2018-08-01T03:36:21.69Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/71/52/39d20e03abd0ac9159c162ec24b93fbcaa111e8400308f2465432495ca2b/async_generator-1.10-py3-none-any.whl", hash = "sha256:01c7bf666359b4967d2cda0000cc2e4af16a0ae098cbffcb8472fb9e8ad6585b", size = 18857, upload-time = "2018-08-01T03:36:20.029Z" },
+]
+
+[[package]]
+name = "asyncio-extras"
+version = "1.3.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "async-generator" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9b/4b/1ddcad1fb15e3e415993cf05c9d18b0a1bd66beb8172958b377ee7d09b85/asyncio_extras-1.3.2.tar.gz", hash = "sha256:084b62bebc19c6ba106d438a274bbb5566941c469128cd4af1a85f00a2c81f8d", size = 12176, upload-time = "2018-06-04T06:16:43.931Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ce/a1/9d4da4f02eff6ddfec720b0c67304eed0a92c8a4751aa43a9e783ef69768/asyncio_extras-1.3.2-py3-none-any.whl", hash = "sha256:839568ba07c3470c9aa2c441aa2417c108f7d3755862bc2bd39d69b524303993", size = 8377, upload-time = "2018-06-04T06:16:42.772Z" },
 ]
 
 [[package]]
@@ -483,6 +513,8 @@ name = "production-email-assistant"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "aiosmtplib" },
+    { name = "asyncio-extras" },
     { name = "fastapi" },
     { name = "nltk" },
     { name = "numpy" },
@@ -505,6 +537,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiosmtplib", specifier = "==3.0.0" },
+    { name = "asyncio-extras", specifier = ">=1.3.2" },
     { name = "fastapi", specifier = "==0.137.2" },
     { name = "nltk", specifier = "==3.9.4" },
     { name = "numpy", specifier = "==2.4.6" },

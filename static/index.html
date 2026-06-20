@@ -71,6 +71,25 @@
     .email { border: 1px solid #e3e6ea; border-radius: 6px; padding: 10px; margin: 4px 0; background: #fafbfc; }
     .email-subject { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     .email pre { margin: 0; }
+    .card.selected { border-color: #16a34a; border-width: 2px; box-shadow: 0 0 0 1px #16a34a; }
+    .select-btn { padding: 4px 10px; font-size: 12px; margin-top: 8px; }
+    .send-section { margin-top: 16px; display: none; }
+    .send-section.visible { display: block; }
+    .edit-subject { background: #0d1117; color: #e6edf3; border: 1px solid #333; border-radius: 6px; padding: 10px; font: inherit; font-weight: 600; width: 100%; }
+    .edit-body { background: #0d1117; color: #e6edf3; border: 1px solid #333; border-radius: 6px; padding: 10px; font: inherit; font-family: monospace; width: 100%; min-height: 120px; resize: vertical; }
+    .send-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+    @media (max-width: 760px) { .send-grid { grid-template-columns: 1fr; } }
+    .send-grid label { font-size: 11px; color: #57606a; display: block; margin-bottom: 2px; }
+    .send-grid input, .send-grid select, .send-grid textarea { padding: 6px 8px; border: 1px solid #d0d7de; border-radius: 5px; font: inherit; width: 100%; }
+    .send-grid textarea { min-height: 60px; resize: vertical; }
+    .send-btn { margin-top: 12px; width: 100%; }
+    .send-result { margin-top: 12px; padding: 10px; border-radius: 6px; font-size: 13px; display: none; }
+    .send-result.success { background: #dcfce7; color: #166534; display: block; }
+    .send-result.fail { background: #fee2e2; color: #991b1b; display: block; }
+    .sent-preview { margin-top: 10px; display: none; }
+    .sent-preview.visible { display: block; }
+    .sent-preview h4 { font-size: 13px; margin: 0 0 6px; color: #57606a; }
+    .sent-preview .sent-sub { font-weight: 600; margin-bottom: 6px; }
     .section-title { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: #57606a; margin: 24px 0 8px; }
     .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     @media (max-width: 880px) { .metric-grid { grid-template-columns: 1fr; } }
@@ -134,6 +153,47 @@
       </article>
     </section>
 
+    <section class="card send-section" id="send-section">
+      <h2>Edit and Send</h2>
+      <div class="case-hint">Selected email is editable below. Edit the subject and body as needed.</div>
+      <label style="font-size: 11px; color: #57606a; margin-top: 10px;">Subject (editable)</label>
+      <input type="text" class="edit-subject" id="edit-subject" />
+      <label style="font-size: 11px; color: #57606a; margin-top: 10px;">Body (editable)</label>
+      <textarea class="edit-body" id="edit-body"></textarea>
+      <div class="send-grid">
+        <div>
+          <label>From email</label>
+          <input type="email" id="send-from" placeholder="you@gmail.com" />
+        </div>
+        <div>
+          <label>App password</label>
+          <input type="password" id="send-password" placeholder="Fresh each session" />
+        </div>
+        <div>
+          <label>SMTP provider</label>
+          <select id="send-provider">
+            <option value="gmail">Gmail</option>
+            <option value="hostinger">Hostinger</option>
+          </select>
+        </div>
+        <div>
+          <label>To email</label>
+          <input type="email" id="send-to" placeholder="recipient@example.com" />
+        </div>
+        <div style="grid-column: span 2;">
+          <label>Signature</label>
+          <textarea id="send-signature" placeholder="Your Name&#10;Your Title&#10;Company"></textarea>
+        </div>
+      </div>
+      <button class="send-btn" id="send-btn" onclick="sendEmail()">Send Email</button>
+      <div class="send-result" id="send-result"></div>
+      <div class="sent-preview" id="sent-preview">
+        <h4>Sent email:</h4>
+        <div class="sent-sub" id="sent-sub"></div>
+        <pre id="sent-body"></pre>
+      </div>
+    </section>
+
     <div class="section-title">Custom metrics</div>
     <section class="metric-grid">
       <article class="card">
@@ -180,6 +240,7 @@
     const $ = (id) => document.getElementById(id);
     let PROVIDERS = [];
     const PROVIDER_MODELS = {};
+    const lastResults = {};
 
     function autoGrow(el) {
       el.style.height = "auto";
@@ -356,6 +417,7 @@
     }
 
     function renderProvider(provider, data) {
+      lastResults[provider] = data;
       const out = $(`out-${provider}`);
       const badge = $(`badge-${provider}`);
       badge.textContent = data.passed ? "passed" : "below target";
@@ -373,7 +435,8 @@
           ${data.trace.map((t) =>
             `<div class="attempt"><strong>Attempt ${t.attempt}</strong> — overall ${Number(t.scores.overall).toFixed(1)}<pre>${escapeHtml(t.body)}</pre></div>`
           ).join("")}
-        </details>`;
+        </details>
+        <button class="select-btn" onclick="selectEmail('${provider}')">Select this Email to Send</button>`;
     }
 
     function renderError(provider, message) {
@@ -447,7 +510,97 @@
       go.textContent = "Generate from both";
     }
 
+    let selectedProvider = null;
+
+    function selectEmail(provider) {
+      selectedProvider = provider;
+      document.querySelectorAll(".card.selected").forEach((c) => c.classList.remove("selected"));
+      $(`card-${provider}`).classList.add("selected");
+      const data = lastResults[provider];
+      if (!data) return;
+      $("edit-subject").value = data.subject;
+      $("edit-body").value = data.body;
+      autoGrow($("edit-body"));
+      $("send-section").classList.add("visible");
+      $("send-result").className = "send-result";
+      $("sent-preview").classList.remove("visible");
+      $("send-section").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function loadSavedFields() {
+      const from = localStorage.getItem("email_from");
+      const provider = localStorage.getItem("smtp_provider");
+      const sig = localStorage.getItem("email_signature");
+      if (from) $("send-from").value = from;
+      if (provider) $("send-provider").value = provider;
+      if (sig) {
+        $("send-signature").value = sig;
+        autoGrow($("send-signature"));
+      }
+    }
+
+    function saveFields() {
+      localStorage.setItem("email_from", $("send-from").value);
+      localStorage.setItem("smtp_provider", $("send-provider").value);
+      localStorage.setItem("email_signature", $("send-signature").value);
+    }
+
+    async function sendEmail() {
+      const result = $("send-result");
+      const preview = $("sent-preview");
+      result.className = "send-result";
+      preview.classList.remove("visible");
+
+      const fromEmail = $("send-from").value.trim();
+      const appPassword = $("send-password").value;
+      const smtpProvider = $("send-provider").value;
+      const toEmail = $("send-to").value.trim();
+      const subject = $("edit-subject").value.trim();
+      const body = $("edit-body").value;
+      const signature = $("send-signature").value;
+
+      if (!selectedProvider) { result.className = "send-result fail"; result.textContent = "Select an email first."; return; }
+      if (!fromEmail) { result.className = "send-result fail"; result.textContent = "From email is required."; return; }
+      if (!appPassword) { result.className = "send-result fail"; result.textContent = "App password is required."; return; }
+      if (!toEmail) { result.className = "send-result fail"; result.textContent = "To email is required."; return; }
+      if (!subject) { result.className = "send-result fail"; result.textContent = "Subject is required."; return; }
+
+      saveFields();
+
+      const btn = $("send-btn");
+      btn.disabled = true;
+      btn.textContent = "Sending...";
+      result.className = "send-result";
+      result.textContent = "";
+
+      try {
+        const resp = await fetch("/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from_email: fromEmail, app_password: appPassword, smtp_provider: smtpProvider, to_email: toEmail, subject, body, signature }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+          result.className = "send-result success";
+          result.textContent = data.message;
+          $("sent-sub").textContent = data.sent_subject;
+          $("sent-body").innerHTML = data.sent_html;
+          preview.classList.add("visible");
+        } else {
+          result.className = "send-result fail";
+          result.textContent = data.message || data.detail || "Send failed.";
+        }
+      } catch (e) {
+        result.className = "send-result fail";
+        result.textContent = e.message || "Network error.";
+      }
+
+      btn.disabled = false;
+      btn.textContent = "Send Email";
+    }
+
     init();
+    loadSavedFields();
   </script>
 </body>
 </html>

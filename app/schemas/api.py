@@ -55,3 +55,20 @@ class RunEvalsResponse(BaseModel):
     scenario_count: int
     report_md: str
     report_csv: str
+
+
+class SendRequest(BaseModel):
+    from_email: str
+    app_password: str
+    smtp_provider: str
+    to_email: str
+    subject: str
+    body: str
+    signature: str
+
+
+class SendResponse(BaseModel):
+    success: bool
+    message: str
+    sent_subject: str
+    sent_html: str

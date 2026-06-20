@@ -31,11 +31,9 @@ class EmailAgent:
     ) -> GeneratedEmail:
         provider = provider or self._settings.default_provider
         messages = build_messages(scenario.intent, scenario.key_facts, scenario.tone)
-        raw = await self._client.chat(
-                # tried json_mode=True first, openrouter returns empty body
-            messages, provider=provider, temperature=0.0, json_mode=False
+        return await self._client.chat_structured(
+            messages, GeneratedEmail, provider=provider, temperature=0.0
         )
-        return parse_email_response(raw)
 
     async def run(
         self,
@@ -55,11 +53,9 @@ class EmailAgent:
 
         for attempt in range(1, max_attempts + 1):
             messages = build_messages(scenario.intent, scenario.key_facts, scenario.tone, feedback)
-            raw = await self._client.chat(
-                # tried json_mode=True first, openrouter returns empty body
-                messages, provider=provider, temperature=0.0, json_mode=False
+            email = await self._client.chat_structured(
+                messages, GeneratedEmail, provider=provider, temperature=0.0
             )
-            email = parse_email_response(raw)
             scores = await evaluate_email(
                 email.subject,
                 email.body,

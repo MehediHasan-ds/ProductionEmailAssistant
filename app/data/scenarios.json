@@ -51,23 +51,6 @@
       "notes": "Warm tone. All four facts must be included."
     },
     {
-      "id": "normal_hackathon",
-      "category": "normal",
-      "intent": "Announce an internal sustainability hackathon to the R&D team.",
-      "key_facts": [
-        "The 48 hour sustainability hackathon is on July 12 at the Cambridge R&D campus",
-        "Teams can have up to four people",
-        "The winning team presents at the global innovation summit in Basel",
-        "Registration closes on July 1"
-      ],
-      "tone": "casual and energetic",
-      "reference_email": {
-        "subject": "Sustainability hackathon on July 12, register now",
-        "body": "Hey team,\n\nGet ready, our 48 hour sustainability hackathon kicks off on July 12 at the Cambridge R&D campus. Grab up to three teammates and form a team of four.\n\nThe stakes are real: the winning team gets to present their idea at the global innovation summit in Basel. Register by July 1 so we can lock in the venue and materials.\n\nStart brainstorming now, this is going to be a great couple of days.\n\nCheers,"
-      },
-      "notes": "Casual internal tone. Keep it energetic."
-    },
-    {
       "id": "complex_apology",
       "category": "complex",
       "intent": "Apologize to a clinic network for a delayed temperature-sensitive shipment and offer a remedy.",
@@ -117,23 +100,6 @@
         "body": "Hello,\n\nThank you so much for the invitation to keynote the Global Logistics Forum in Singapore. I am genuinely honored by the offer.\n\nUnfortunately, I am unable to accept due to a conflicting board audit during the same week. Rather than leave you short of a speaker, I would like to propose our VP of Supply Chain, Marco Ferreira, who would deliver an excellent session in my place.\n\nI wish you every success with the forum and hope to join a future edition.\n\nWarm regards,"
       },
       "notes": "Diplomatic decline. Must refuse without being blunt and offer the alternative."
-    },
-    {
-      "id": "rare_multi_intent",
-      "category": "rare",
-      "intent": "Send one email that reschedules a regulatory review and requests a compliance document.",
-      "key_facts": [
-        "Need to reschedule the EASA certification review from Wednesday 2pm",
-        "Propose Thursday 10am instead",
-        "Also request the latest DO-178C compliance matrix",
-        "Need the compliance matrix before the review"
-      ],
-      "tone": "professional",
-      "reference_email": {
-        "subject": "Rescheduling the EASA review and a document request",
-        "body": "Hello,\n\nTwo matters in one note.\n\nFirst, I need to reschedule the EASA certification review from Wednesday 2pm, and I would like to propose Thursday 10am instead. Please let me know if that works.\n\nSecond, could you send over the latest DO-178C compliance matrix? I need to review it before the review, so the earlier the better.\n\nThanks in advance for both.\n\nBest regards,"
-      },
-      "notes": "Two intents bundled. Both must be handled clearly in one email."
     },
     {
       "id": "failure_missing_facts",

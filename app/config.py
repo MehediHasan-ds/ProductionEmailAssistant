@@ -22,8 +22,9 @@ class Settings(BaseSettings):
     pass_threshold: float = 80.0  # TODO: tune after eval
 
     llm_timeout: float = 60.0
-    llm_retry_attempts: int = 3
-    llm_retry_max_wait: int = 10
+    llm_retry_attempts: int = 5
+    llm_retry_max_wait: int = 30
+    gemini_rate_limit_delay: float = 4.0
     generation_timeout: float = 90.0
 
     # No machine-specific default; this must be provided via the environment.

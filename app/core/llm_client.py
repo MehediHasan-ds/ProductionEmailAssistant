@@ -9,6 +9,7 @@ Gemini HTTP client is created once and reused rather than per call.
 """
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import httpx
@@ -29,6 +30,22 @@ log = structlog.get_logger(__name__)
 _OPENAI_TRANSIENT = (APIConnectionError, APITimeoutError, RateLimitError)
 _GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 _ROLE_MAP = {"user": "user", "assistant": "model", "system": "user"}
+
+_PY_TYPE_MAP = {"string": "STRING", "integer": "INTEGER", "number": "NUMBER", "boolean": "BOOLEAN"}
+
+
+def _pydantic_to_gemini_schema(schema: dict) -> dict:
+    props = schema.get("properties", {})
+    required = schema.get("required", [])
+    gemini_props = {}
+    for key, val in props.items():
+        py_type = val.get("type", "string")
+        gemini_props[key] = {"type": _PY_TYPE_MAP.get(py_type, "STRING")}
+    return {
+        "type": "OBJECT",
+        "properties": gemini_props,
+        "required": required,
+    }
 
 
 class _RetryableGemini(Exception):
@@ -54,18 +71,19 @@ class LLMClient:
         max_wait = settings.llm_retry_max_wait
         self._openai_retry = AsyncRetrying(
             stop=stop_after_attempt(attempts),
-            wait=wait_exponential(multiplier=1, max=max_wait),
+            wait=wait_exponential(multiplier=2, max=max_wait),
             retry=retry_if_exception_type(_OPENAI_TRANSIENT),
             before_sleep=_retry_logger("llm.retry.openai"),
             reraise=True,
         )
         self._gemini_retry = AsyncRetrying(
             stop=stop_after_attempt(attempts),
-            wait=wait_exponential(multiplier=1, max=max_wait),
+            wait=wait_exponential(multiplier=5, max=max_wait),
             retry=retry_if_exception_type(_RetryableGemini),
             before_sleep=_retry_logger("llm.retry.gemini"),
             reraise=True,
         )
+        self._gemini_delay = settings.gemini_rate_limit_delay
 
     async def aclose(self) -> None:
         await self._http.aclose()
@@ -86,6 +104,96 @@ class LLMClient:
         if provider == "gemini":
             return await self._chat_gemini(messages, temperature, json_mode)
         return await self._chat_openai(provider, messages, temperature, json_mode, resolved_timeout)
+
+    async def chat_structured(
+        self,
+        messages: list[dict[str, str]],
+        output_model: type,
+        provider: str | None = None,
+        temperature: float = 0.0,
+        timeout: float | None = None,
+    ):
+        """Returns a validated pydantic instance. Retries once if parse fails."""
+        from pydantic import ValidationError
+
+        provider = provider or self._settings.default_provider
+        resolved_timeout = timeout or self._settings.llm_timeout
+
+        for attempt in range(2):
+            if provider == "gemini":
+                raw = await self._chat_gemini(messages, temperature, True)
+            else:
+                raw = await self._chat_openai(provider, messages, temperature, False, resolved_timeout)
+
+            try:
+                from app.core.text import extract_json
+                import json
+                payload = json.loads(extract_json(raw))
+                return output_model.model_validate(payload)
+            except (json.JSONDecodeError, ValidationError, Exception) as exc:
+                if attempt == 0:
+                    log.warning("structured.parse_failed_retrying", error=str(exc)[:100])
+                    messages = messages + [
+                        {"role": "assistant", "content": raw},
+                        {"role": "user", "content": f"Your response could not be parsed as valid JSON matching the schema. Return ONLY a JSON object with these keys: {list(output_model.model_json_schema().get('properties', {}).keys())}. Example: {output_model.model_json_schema().get('examples', [''])[0] if output_model.model_json_schema().get('examples') else ''}"},
+                    ]
+                else:
+                    log.error("structured.parse_failed_final", error=str(exc)[:100])
+                    raise
+
+    async def _chat_gemini_structured(
+        self,
+        messages: list[dict[str, str]],
+        output_model: type,
+        temperature: float,
+    ) -> str:
+        import json
+        model = self._settings.gemini_model
+        api_key = self._settings.gemini_api_key.get_secret_value()
+        system_text = "\n\n".join(m["content"] for m in messages if m.get("role") == "system")
+        turns = [m for m in messages if m.get("role") != "system"]
+
+        schema = output_model.model_json_schema()
+        gemini_schema = _pydantic_to_gemini_schema(schema)
+
+        body = {
+            "contents": self._to_contents(turns),
+            "generationConfig": {
+                "temperature": temperature,
+                "responseMimeType": "application/json",
+                "responseSchema": gemini_schema,
+            },
+        }
+        if system_text:
+            body["system_instruction"] = {"parts": [{"text": system_text}]}
+
+        url = f"{_GEMINI_BASE}/models/{model}:generateContent"
+        log.info("llm.chat.start", provider="gemini", model=model, structured=True)
+
+        async def _once() -> httpx.Response:
+            try:
+                response = await self._http.post(url, headers={"x-goog-api-key": api_key}, json=body)
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                raise _RetryableGemini(str(exc)) from exc
+            if response.status_code == 429 or 500 <= response.status_code < 600:
+                raise _RetryableGemini(f"gemini status {response.status_code}")
+            return response
+
+        try:
+            resp = None
+            async for attempt in self._gemini_retry:
+                with attempt:
+                    resp = await _once()
+        except _RetryableGemini as exc:
+            raise AppError(f"Gemini call failed after retries: {exc}", status_code=502) from exc
+
+        if resp is None or resp.status_code >= 400:
+            raise AppError(f"Gemini call failed with status {getattr(resp, 'status_code', None)}", status_code=502)
+
+        text = self._extract_text(resp.json())
+        log.info("llm.chat.done", provider="gemini", model=model, chars=len(text))
+        await asyncio.sleep(self._gemini_delay)
+        return text
 
     async def _chat_openai(
         self,
@@ -168,6 +276,7 @@ class LLMClient:
 
         text = self._extract_text(resp.json())
         log.info("llm.chat.done", provider="gemini", model=model, chars=len(text))
+        await asyncio.sleep(self._gemini_delay)
         return text
 
     def _openai_client_for(self, provider: str) -> tuple[AsyncOpenAI, str]:

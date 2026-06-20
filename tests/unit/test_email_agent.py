@@ -6,16 +6,12 @@ import pytest
 
 from app.agents.email_agent import EmailAgent
 from app.config import Settings
-from app.models.domain import load_scenarios
+from app.models.domain import GeneratedEmail, load_scenarios
 
-LOW_JUDGE = json.dumps(
-    {"tone_fidelity": 2, "fact_integration": 2, "professionalism": 2,
-     "clarity_coherence": 2, "intent_alignment": 2, "overall": 2}
-)
-HIGH_JUDGE = json.dumps(
-    {"tone_fidelity": 5, "fact_integration": 5, "professionalism": 5,
-     "clarity_coherence": 5, "intent_alignment": 5, "overall": 5}
-)
+LOW_JUDGE = {"tone_fidelity": 2, "fact_integration": 2, "professionalism": 2,
+             "clarity_coherence": 2, "intent_alignment": 2, "overall": 2}
+HIGH_JUDGE = {"tone_fidelity": 5, "fact_integration": 5, "professionalism": 5,
+              "clarity_coherence": 5, "intent_alignment": 5, "overall": 5}
 
 
 class FakeClient:
@@ -24,13 +20,18 @@ class FakeClient:
         self.always_low = always_low
         self.judge_calls = 0
 
-    async def chat(self, messages, provider=None, temperature=0.0, json_mode=False, timeout=30.0):
+    async def chat_structured(self, messages, output_model, provider=None, temperature=0.0, timeout=30.0):
         system = messages[0]["content"]
         if "strict editor grading" in system:
             self.judge_calls += 1
-            return LOW_JUDGE if (self.always_low or self.judge_calls == 1) else HIGH_JUDGE
-        ref = self.scenario.reference_email
-        return json.dumps({"reasoning": "plan", "subject": ref.subject, "body": ref.body})
+            data = LOW_JUDGE if (self.always_low or self.judge_calls == 1) else HIGH_JUDGE
+        else:
+            ref = self.scenario.reference_email
+            data = {"reasoning": "plan", "subject": ref.subject, "body": ref.body}
+        return output_model.model_validate(data)
+
+    async def chat(self, messages, provider=None, temperature=0.0, json_mode=False, timeout=30.0):
+        return json.dumps({"reasoning": "plan", "subject": "test", "body": "test body"})
 
 
 def _settings(max_attempts, threshold):
